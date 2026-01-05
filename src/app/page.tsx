@@ -1,132 +1,79 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { lessons, type Lesson, type WordEntry } from "../data/vocab";
 
-type Card = {
-  id: number;
-  front: string; // z. B. Englisch
-  back: string; // z. B. Deutsch
-  hint?: string;
-  example?: string;
-};
+type Direction = "source-to-target" | "target-to-source";
 
-const starterCards: Card[] = [
-  {
-    id: 1,
-    front: "to improve",
-    back: "verbessern",
-    hint: "Verb",
-    example: "I want to improve my German.",
-  },
-  {
-    id: 2,
-    front: "challenge",
-    back: "die Herausforderung",
-    hint: "Nomen",
-    example: "This exercise is a real challenge.",
-  },
-  {
-    id: 3,
-    front: "reliable",
-    back: "zuverlässig",
-    hint: "Adjektiv",
-    example: "She is a reliable teammate.",
-  },
-  {
-    id: 4,
-    front: "curious",
-    back: "neugierig",
-    example: "He is curious about languages.",
-  },
-  {
-    id: 5,
-    front: "approach",
-    back: "der Ansatz",
-    example: "We tried a different approach.",
-  },
-  {
-    id: 6,
-    front: "to guess",
-    back: "raten",
-    example: "Can you guess the answer?",
-  },
-  {
-    id: 7,
-    front: "weekly",
-    back: "wöchentlich",
-    hint: "Adverb",
-    example: "We meet weekly to practice.",
-  },
-  {
-    id: 8,
-    front: "achievement",
-    back: "die Leistung",
-  },
-  {
-    id: 9,
-    front: "to schedule",
-    back: "planen / terminieren",
-  },
-  {
-    id: 10,
-    front: "pattern",
-    back: "das Muster",
-    example: "Look for the pattern in the sentences.",
-  },
-  {
-    id: 11,
-    front: "confident",
-    back: "selbstbewusst",
-  },
-  {
-    id: 12,
-    front: "to review",
-    back: "wiederholen / prüfen",
-  },
-];
-
-const normalize = (value: string) => value.trim().toLowerCase();
+const normalize = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[.,;:!?]/g, "");
 
 export default function Home() {
-  const [cards, setCards] = useState<Card[]>(starterCards);
-  const [currentId, setCurrentId] = useState(0);
-  const [reverse, setReverse] = useState(false);
+  const languagePairs = Array.from(
+    new Set(lessons.map((lesson) => `${lesson.languagePair.from}-${lesson.languagePair.to}`)),
+  );
+  const [pairKey, setPairKey] = useState(languagePairs[0] ?? "ru-de");
+
+  const lessonsForPair = useMemo(
+    () => lessons.filter((l) => `${l.languagePair.from}-${l.languagePair.to}` === pairKey),
+    [pairKey],
+  );
+
+  const categories = Array.from(new Set(lessonsForPair.map((l) => l.category)));
+  const [category, setCategory] = useState<string>(categories[0] ?? "");
+
+  const filteredLessons = lessonsForPair.filter((l) => l.category === category);
+  const [lessonId, setLessonId] = useState<string>(filteredLessons[0]?.id ?? "");
+
+  // Fallbacks wenn sich Pair ändert: keine setState-Aufrufe im Effekt nötig.
+  const safeCategory = categories.includes(category) ? category : categories[0] ?? "";
+  const lessonsByCategory = lessonsForPair.filter((l) => l.category === safeCategory);
+  const safeLessonId = lessonsByCategory.some((l) => l.id === lessonId)
+    ? lessonId
+    : lessonsByCategory[0]?.id ?? "";
+  const activeLesson =
+    lessonsByCategory.find((l) => l.id === safeLessonId) ??
+    lessonsByCategory[0] ??
+    lessonsForPair[0];
+
+  const [direction, setDirection] = useState<Direction>("source-to-target");
   const [answer, setAnswer] = useState("");
-  const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [stats, setStats] = useState({ correct: 0, wrong: 0, streak: 0 });
-  const [newFront, setNewFront] = useState("");
-  const [newBack, setNewBack] = useState("");
-  const [newHint, setNewHint] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const currentCard = useMemo(() => {
-    if (cards.length === 0) return null;
-    return cards[currentId % cards.length];
-  }, [cards, currentId]);
+  const cards = useMemo(() => {
+    if (!activeLesson) return [];
+    return [...activeLesson.words].sort((a, b) => a.frequencyRank - b.frequencyRank);
+  }, [activeLesson]);
 
-  useEffect(() => {
-    if (currentId >= cards.length && cards.length > 0) {
-      setCurrentId(0);
-    }
-  }, [cards.length, currentId]);
+  // Kategorie/Lektion werden direkt in den Handlern gewechselt; keine Effekte nötig.
 
-  const pickNextCard = () => {
-    if (cards.length === 0) return;
-    const nextIndex = Math.floor(Math.random() * cards.length);
-    setCurrentId(nextIndex);
-    setShowAnswer(false);
-    setFeedback(null);
-    setAnswer("");
-  };
+  const currentCard = cards[currentIndex % (cards.length || 1)];
+
+  const isReverse = direction === "target-to-source";
+  const cardFront = isReverse
+    ? currentCard?.targets.map((t) => t.text).join(", ")
+    : currentCard?.source;
+  const cardBack = isReverse
+    ? currentCard?.source
+    : currentCard?.targets.map((t) => t.text).join(", ");
+
+  const translit = currentCard?.translit;
 
   const handleSubmit = (evt: FormEvent) => {
     evt.preventDefault();
     if (!currentCard) return;
 
-    const expected = reverse ? currentCard.front : currentCard.back;
-    const isCorrect =
-      normalize(answer) === normalize(expected) ||
-      normalize(answer) === normalize(expected.split("/")[0] ?? "");
+    const expectedList = isReverse
+      ? [normalize(currentCard.source)]
+      : currentCard.targets.map((t) => normalize(t.text.split("/")[0] ?? t.text));
+
+    const isCorrect = expectedList.some((expected) => normalize(answer) === expected);
 
     setFeedback(isCorrect ? "correct" : "wrong");
     setStats((prev) => ({
@@ -135,244 +82,269 @@ export default function Home() {
       streak: isCorrect ? prev.streak + 1 : 0,
     }));
 
-    setTimeout(() => pickNextCard(), 500);
+    setTimeout(() => {
+      setShowAnswer(false);
+      setAnswer("");
+      setFeedback(null);
+      setCurrentIndex((idx) => (cards.length > 0 ? (idx + 1) % cards.length : 0));
+    }, isCorrect ? 500 : 800);
   };
 
-  const handleAddCard = () => {
-    if (!newFront.trim() || !newBack.trim()) return;
-    setCards((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        front: newFront.trim(),
-        back: newBack.trim(),
-        hint: newHint.trim() || undefined,
-      },
-    ]);
-    setNewFront("");
-    setNewBack("");
-    setNewHint("");
-    setCurrentId(cards.length); // springe zum neuen Eintrag
+  const changeLesson = (nextLesson: Lesson) => {
+    setLessonId(nextLesson.id);
+    setCurrentIndex(0);
+    setFeedback(null);
+    setAnswer("");
+    setShowAnswer(false);
   };
 
-  const cardFront = reverse ? currentCard?.back : currentCard?.front;
-  const cardBack = reverse ? currentCard?.front : currentCard?.back;
+  const changeCategory = (nextCategory: string) => {
+    setCategory(nextCategory);
+    const firstLesson = lessonsForPair.find((l) => l.category === nextCategory);
+    if (firstLesson) {
+      changeLesson(firstLesson);
+    } else {
+      setLessonId("");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-900">
-      <main className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-12">
-        <header className="flex flex-col gap-2">
-          <p className="text-sm uppercase tracking-wide text-blue-600">
-            Vokabel Trainer
-          </p>
-          <div className="flex flex-wrap items-baseline justify-between gap-4">
-            <h1 className="text-3xl font-semibold sm:text-4xl">
-              Üben, merken, wiederholen
-            </h1>
-            <div className="flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-sm font-medium text-blue-800">
-              {reverse ? "Deutsch → Englisch" : "Englisch → Deutsch"}
-              <button
-                onClick={() => {
-                  setReverse((prev) => !prev);
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-100 text-slate-900">
+      <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 md:px-8">
+        <header className="rounded-3xl bg-gradient-to-r from-blue-600 via-sky-600 to-blue-500 px-6 py-8 text-white shadow-lg">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] opacity-80">Vokabel Trainer</p>
+              <h1 className="mt-2 text-3xl font-semibold md:text-4xl">
+                Russisch schreiben & verstehen
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-blue-100">
+                Lektionen mit 10–15 Wörtern, sortiert nach Wichtigkeit und Häufigkeit. Mit
+                kyrillischer Schrift, Mehrdeutungen, Konjugationshinweisen und Hinweisen zu unüblichen
+                Formen.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <SelectPill
+                label="Sprachpaar"
+                value={pairKey}
+                onChange={(v) => {
+                  // Reset abhängig vom neuen Sprachpaar, ohne Effekt-Reset.
+                  const nextCategories = Array.from(
+                    new Set(
+                      lessons
+                        .filter((l) => `${l.languagePair.from}-${l.languagePair.to}` === v)
+                        .map((l) => l.category),
+                    ),
+                  );
+                  const nextCategory = nextCategories[0] ?? "";
+                  const nextLessons = lessons.filter(
+                    (l) => `${l.languagePair.from}-${l.languagePair.to}` === v && l.category === nextCategory,
+                  );
+                  setPairKey(v);
+                  setCategory(nextCategory);
+                  setLessonId(nextLessons[0]?.id ?? "");
+                  setCurrentIndex(0);
                   setFeedback(null);
-                  setShowAnswer(false);
                   setAnswer("");
+                  setShowAnswer(false);
                 }}
-                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm transition hover:shadow"
-              >
-                Richtung wechseln
-              </button>
+                options={languagePairs.map((pk) => ({
+                  label: pk.toUpperCase(),
+                  value: pk,
+                }))}
+              />
+              <SelectPill
+                label="Richtung"
+                value={direction}
+                onChange={(value) => {
+                  setDirection(value as Direction);
+                  setFeedback(null);
+                  setAnswer("");
+                  setShowAnswer(false);
+                }}
+                options={[
+                  { label: "Quelle → Ziel", value: "source-to-target" },
+                  { label: "Ziel → Quelle", value: "target-to-source" },
+                ]}
+              />
             </div>
           </div>
-          <p className="text-slate-600">
-            Trainiere mit den Beispieldaten oder füge eigene Vokabeln hinzu.
-            Alles läuft komplett statisch – perfekt für GitHub Pages.
-          </p>
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-5">
-          <div className="lg:col-span-3 rounded-3xl border border-blue-100 bg-white/80 p-6 shadow-sm backdrop-blur">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Aktuelle Karte
-              </h2>
-              <button
-                onClick={() => pickNextCard()}
-                className="text-sm font-medium text-blue-700 hover:text-blue-900"
-              >
-                Nächste Karte
-              </button>
-            </div>
-
-            <div className="mt-4 rounded-2xl bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-6 shadow-inner">
-              {currentCard ? (
-                <>
-                  <p className="text-sm text-slate-500">
-                    {reverse ? "Du siehst: Deutsch" : "Du siehst: Englisch"}
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">
-                    {cardFront}
-                  </p>
-                  {currentCard.hint && (
-                    <p className="mt-1 text-sm text-slate-600">
-                      Hinweis: {currentCard.hint}
-                    </p>
-                  )}
-                  {showAnswer && (
-                    <div className="mt-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-100">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">
-                        Lösung
-                      </p>
-                      <p className="text-lg font-semibold text-emerald-700">
-                        {cardBack}
-                      </p>
-                      {currentCard.example && (
-                        <p className="mt-2 text-sm text-slate-600">
-                          Beispiel: {currentCard.example}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-slate-500">
-                  Noch keine Vokabeln. Füge unten eigene Karten hinzu.
-                </p>
-              )}
-            </div>
-
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <label className="flex items-center justify-between text-sm font-medium text-slate-700">
-                Deine Antwort ({reverse ? "Englisch" : "Deutsch"})
-                {feedback && (
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      feedback === "correct"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-rose-100 text-rose-700"
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <section className="rounded-3xl border border-blue-100 bg-white/90 p-6 shadow-sm backdrop-blur">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => changeCategory(cat)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                      category === cat
+                        ? "bg-blue-600 text-white shadow"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    {feedback === "correct" ? "Richtig" : "Falsch"}
-                  </span>
-                )}
-              </label>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <input
-                  value={answer}
-                  onChange={(evt) => setAnswer(evt.target.value)}
-                  className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  placeholder="Übersetzung eingeben…"
-                  autoComplete="off"
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowAnswer((prev) => !prev)}
-                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-blue-200 hover:text-blue-800"
-                  >
-                    {showAnswer ? "Verbergen" : "Zeigen"}
+                    {cat}
                   </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {lessonsByCategory.map((l) => (
                   <button
-                    type="submit"
-                    className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-                    disabled={!currentCard}
+                    key={l.id}
+                    onClick={() => changeLesson(l)}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                      lessonId === l.id
+                        ? "bg-emerald-100 text-emerald-800 ring-2 ring-emerald-200"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
                   >
-                    Prüfen
+                    {l.title}
                   </button>
-                </div>
-              </div>
-            </form>
-          </div>
-
-          <aside className="lg:col-span-2 flex flex-col gap-6">
-            <div className="rounded-3xl border border-blue-100 bg-white/80 p-6 shadow-sm backdrop-blur">
-              <h2 className="text-lg font-semibold text-slate-900">Statistik</h2>
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <StatBadge label="Richtig" value={stats.correct} tone="success" />
-                <StatBadge label="Falsch" value={stats.wrong} tone="warn" />
-                <StatBadge label="Streak" value={stats.streak} tone="info" />
-              </div>
-              <div className="mt-4 text-sm text-slate-600">
-                Bei falschen Antworten startet die Serie wieder bei 0.
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-sm backdrop-blur">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Eigene Vokabeln hinzufügen
-              </h2>
-              <div className="mt-4 space-y-3">
-                <input
-                  value={newFront}
-                  onChange={(evt) => setNewFront(evt.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  placeholder="Ausgangssprache (z. B. Englisch)"
-                />
-                <input
-                  value={newBack}
-                  onChange={(evt) => setNewBack(evt.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  placeholder="Übersetzung (z. B. Deutsch)"
-                />
-                <input
-                  value={newHint}
-                  onChange={(evt) => setNewHint(evt.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  placeholder="Optionaler Hinweis oder Kategorie"
-                />
-                <button
-                  onClick={handleAddCard}
-                  className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-                >
-                  Vokabel speichern
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-sm backdrop-blur">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Satz der aktuell geladenen Vokabeln
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Du kannst die Richtung wechseln oder einzelne Karten überspringen.
-                Alles bleibt lokal im Browser, es wird nichts gespeichert.
-              </p>
-              <div className="mt-4 grid max-h-64 grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-slate-100 p-3">
-                {cards.map((card) => (
-                  <div
-                    key={card.id}
-                    className="flex items-start justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-800"
-                  >
-                    <div>
-                      <p className="font-semibold">
-                        {card.front}{" "}
-                        <span className="text-slate-500">→ {card.back}</span>
-                      </p>
-                      {card.hint && (
-                        <p className="text-xs text-slate-500">{card.hint}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => {
-                        setCards((prev) => prev.filter((c) => c.id !== card.id));
-                        if (cards.length === 1) {
-                          setCurrentId(0);
-                          setFeedback(null);
-                          setAnswer("");
-                          setShowAnswer(false);
-                        }
-                      }}
-                      className="rounded-full px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-200"
-                      aria-label="Karte löschen"
-                    >
-                      ×
-                    </button>
-                  </div>
                 ))}
               </div>
             </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-[1fr_0.45fr] md:items-start">
+              <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 text-white shadow-xl">
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-blue-200">
+                  <span>
+                    {isReverse ? "Antwort auf Deutsch → Russisch" : "Antwort auf Russisch → Deutsch"}
+                  </span>
+                  <span>Häufigkeit #{currentCard?.frequencyRank ?? "–"}</span>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <p className="text-3xl font-semibold leading-tight">{cardFront || "Keine Karte"}</p>
+                  {translit && <p className="text-sm text-blue-200">Translit: {translit}</p>}
+                  {currentCard?.usage && <p className="text-sm text-blue-100">{currentCard.usage}</p>}
+                </div>
+
+                {showAnswer && currentCard && (
+                  <div className="mt-5 rounded-xl bg-white/10 p-4 backdrop-blur">
+                    <p className="text-xs uppercase tracking-wide text-blue-200">Lösung & Hinweise</p>
+                    <p className="mt-1 text-xl font-semibold text-emerald-200">{cardBack}</p>
+                    {currentCard.targets.some((t) => t.note) && (
+                      <ul className="mt-2 space-y-1 text-sm text-blue-100">
+                        {currentCard.targets.map(
+                          (t) => t.note && (
+                            <li key={t.text}>
+                              • {t.text}: {t.note}
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    )}
+                    {currentCard.forms && (
+                      <div className="mt-2 text-sm text-blue-100">
+                        {currentCard.forms.irregular && (
+                          <div>Unregelmäßig: {currentCard.forms.irregular}</div>
+                        )}
+                        {currentCard.forms.missing && currentCard.forms.missing.length > 0 && (
+                          <div>Nicht üblich: {currentCard.forms.missing.join(", ")}</div>
+                        )}
+                      </div>
+                    )}
+                    {currentCard.examples && (
+                      <div className="mt-2 text-sm text-blue-100">
+                        Beispiel:
+                        <ul className="list-disc pl-4">
+                          {currentCard.examples.map((ex) => (
+                            <li key={ex}>{ex}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <label className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Deine Antwort
+                    {feedback && (
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs ${
+                          feedback === "correct"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-rose-100 text-rose-700"
+                        }`}
+                      >
+                        {feedback === "correct" ? "Richtig" : "Falsch"}
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    value={answer}
+                    onChange={(evt) => setAnswer(evt.target.value)}
+                    placeholder={isReverse ? "Russisch eingeben…" : "Deutsch eingeben…"}
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    autoComplete="off"
+                  />
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                      disabled={!currentCard}
+                    >
+                      Prüfen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAnswer((prev) => !prev)}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      {showAnswer ? "Verbergen" : "Zeigen"}
+                    </button>
+                  </div>
+                </form>
+
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-slate-800">Statistik</h3>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <StatBadge label="Richtig" value={stats.correct} tone="success" />
+                    <StatBadge label="Falsch" value={stats.wrong} tone="warn" />
+                    <StatBadge label="Streak" value={stats.streak} tone="info" />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-slate-800">
+                    Lektion ({cards.length} Wörter, 10–15 empfohlen)
+                  </h3>
+                  <div className="mt-3 grid max-h-56 grid-cols-1 gap-2 overflow-y-auto">
+                    {cards.map((word) => (
+                      <LessonWord key={word.id} entry={word} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside className="space-y-4">
+            <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-emerald-900">Übungstypen</h2>
+              <ul className="mt-3 space-y-2 text-sm text-emerald-800">
+                <li>• Schreibübung mit Klartext und Transkription.</li>
+                <li>• Hinweise bei Mehrdeutigkeiten zwischen Russisch und Deutsch.</li>
+                <li>• Konjugationshinweise, wenn Formen fehlen oder unüblich sind.</li>
+                <li>• Frequenzbasierte Sortierung je Kategorie/Lektion.</li>
+              </ul>
+            </div>
+            <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900">So nutzt du es</h2>
+              <ol className="mt-3 space-y-2 text-sm text-slate-700">
+                <li>1. Wähle Kategorie & Lektion (10–15 Wörter).</li>
+                <li>2. Stelle die Richtung ein (Quelle ↔ Ziel).</li>
+                <li>3. Schreibe die Übersetzung, prüfe, wiederhole.</li>
+                <li>4. Achte auf Hinweise zu Bedeutungen und Formen.</li>
+              </ol>
+            </div>
           </aside>
-        </section>
+        </div>
       </main>
     </div>
   );
@@ -392,9 +364,65 @@ function StatBadge({ label, value, tone }: StatBadgeProps) {
   };
 
   return (
-    <div className={`rounded-2xl px-4 py-3 text-center shadow-sm ${tones[tone]}`}>
-      <p className="text-xs uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-semibold">{value}</p>
+    <div className={`rounded-xl px-3 py-2 text-center text-sm font-semibold shadow-sm ${tones[tone]}`}>
+      <p className="text-[11px] uppercase tracking-wide">{label}</p>
+      <p className="text-xl">{value}</p>
+    </div>
+  );
+}
+
+function SelectPill({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { label: string; value: string }[];
+}) {
+  return (
+    <label className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow">
+      <span className="uppercase tracking-wide text-[11px] text-blue-100">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-full bg-white/20 px-3 py-1 text-sm font-semibold text-white outline-none backdrop-blur"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value} className="text-slate-900">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function LessonWord({ entry }: { entry: WordEntry }) {
+  return (
+    <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-slate-900">
+            {entry.source}{" "}
+            <span className="text-slate-500">{entry.translit && `(${entry.translit})`}</span>
+          </p>
+          <p className="text-sm text-slate-700">{entry.targets.map((t) => t.text).join(", ")}</p>
+          {entry.targets.some((t) => t.note) && (
+            <p className="text-xs text-slate-500">
+              {entry.targets
+                .filter((t) => t.note)
+                .map((t) => `${t.text}: ${t.note}`)
+                .join(" • ")}
+            </p>
+          )}
+        </div>
+        <div className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm">
+          #{entry.frequencyRank}
+        </div>
+      </div>
     </div>
   );
 }
