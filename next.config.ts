@@ -1,13 +1,11 @@
 import type { NextConfig } from "next";
 
-const repoBasePath = process.env.NEXT_PUBLIC_BASE_PATH || "/Free-Trainer";
-const normalizedBasePath = repoBasePath === "/" ? "" : repoBasePath;
-
 const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
-  basePath: normalizedBasePath || undefined,
-  assetPrefix: normalizedBasePath || undefined,
+  // Im lokalen Dev ohne Base-Path; für GitHub Pages per Env setzen (z. B. /Free-Trainer)
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
+  assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
   images: {
     unoptimized: true,
   },
