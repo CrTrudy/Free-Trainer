@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { lessons, type Lesson, type WordEntry } from "../data/vocab";
+import { lessons, type Lesson, type Tense, type WordEntry } from "../data/vocab";
 
 type Direction = "source-to-target" | "target-to-source";
 
@@ -45,6 +45,7 @@ export default function Home() {
     lessonsForPair[0];
 
   const [direction, setDirection] = useState<Direction>("source-to-target");
+  const [tense, setTense] = useState<Tense>("present");
   const [lessonStats, setLessonStats] = useState<Record<string, Stat>>({});
 
   const categoryStats = useMemo(() => {
@@ -171,6 +172,7 @@ export default function Home() {
                 selectedLessonId={safeLessonId}
                 onSelectLesson={(id) => setLessonId(id)}
                 direction={direction}
+                selectedTense={safeCategory === "Verben" ? tense : undefined}
                 onResult={(lessonKey, isCorrect) => updateStats(lessonKey, isCorrect)}
               />
             </div>
@@ -228,12 +230,14 @@ function LessonTrainer({
   selectedLessonId,
   onSelectLesson,
   direction,
+  selectedTense,
   onResult,
 }: {
   lessons: Lesson[];
   selectedLessonId: string;
   onSelectLesson: (lessonId: string) => void;
   direction: Direction;
+  selectedTense?: Tense;
   onResult: (lessonId: string, isCorrect: boolean) => void;
 }) {
   const orderedLessons = useMemo(
@@ -291,9 +295,14 @@ function LessonTrainer({
   const handleSubmit = (evt: FormEvent) => {
     evt.preventDefault();
     if (!activeLesson || !activeWord) return;
-    const expectedList = isReverse
-      ? [normalize(activeWord.source)]
-      : activeWord.targets.map((t) => normalize(t.text.split("/")[0] ?? t.text));
+    let expectedList: string[] = [];
+    if (activeWord.partOfSpeech === "verb" && selectedTense && activeWord.forms?.conjugations?.[selectedTense]) {
+      expectedList = (activeWord.forms.conjugations[selectedTense] ?? []).map((f) => normalize(f));
+    } else {
+      expectedList = isReverse
+        ? [normalize(activeWord.source)]
+        : activeWord.targets.map((t) => normalize(t.text.split("/")[0] ?? t.text));
+    }
     const isCorrect = expectedList.some((expected) => normalize(answer) === expected);
     setFeedback(isCorrect ? "correct" : "wrong");
     onResult(activeLesson.id, isCorrect);
@@ -397,6 +406,22 @@ function LessonTrainer({
                       {isActive && showAnswer && (
                         <>
                           {word.translit && <p className="text-sm text-slate-600">Translit: {word.translit}</p>}
+                          {word.partOfSpeech === "verb" && selectedTense && word.forms?.conjugations?.[selectedTense] && (
+                            <div className="mt-1 text-sm text-slate-700">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {selectedTense === "present"
+                                  ? "Gegenwart"
+                                  : selectedTense === "past"
+                                    ? "Vergangenheit"
+                                    : "Zukunft"}
+                              </p>
+                              <ul className="mt-1 space-y-1">
+                                {word.forms.conjugations[selectedTense]!.map((form) => (
+                                  <li key={form}>{form}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                           <div className="text-sm text-slate-700">
                             {word.targets.some((t) => t.note) && (
                               <ul className="mt-1 space-y-1">
@@ -566,3 +591,15 @@ function LessonWord({ entry }: { entry: WordEntry }) {
 }
 
 // WordExerciseCard entfernt (nicht mehr genutzt)
+              {safeCategory === "Verben" && (
+                <SelectPill
+                  label="Zeitform"
+                  value={tense}
+                  onChange={(value) => setTense(value as Tense)}
+                  options={[
+                    { label: "Gegenwart", value: "present" },
+                    { label: "Vergangenheit", value: "past" },
+                    { label: "Zukunft", value: "future" },
+                  ]}
+                />
+              )}
