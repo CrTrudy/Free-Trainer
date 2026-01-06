@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -242,7 +242,7 @@ export default function Home() {
                     </span>
                     <span className="text-xs text-slate-500">
                       {lessonsByCategory.length} Lektion
-                      {lessonsByCategory.length === 1 ? "" : "en"} ·{" "}
+                      {lessonsByCategory.length === 1 ? "" : "en"} Â·{" "}
                       {activeLesson?.words.length ?? 0} Vokabeln
                     </span>
                   </div>
@@ -334,7 +334,7 @@ export default function Home() {
                 Gesamt (Sprachpaar)
               </h2>
               <p className="mt-1 text-sm text-emerald-800">
-                Richtig: {totalStats.correct} · Falsch: {totalStats.wrong} ·
+                Richtig: {totalStats.correct} Â· Falsch: {totalStats.wrong} Â·
                 Abgeschlossene Lektionen: {totalStats.completed}
               </p>
             </div>
@@ -345,7 +345,7 @@ export default function Home() {
               </h2>
               <ol className="mt-3 space-y-2 text-sm text-slate-700">
                 <li>1. Kategorie und Lektion waehlen.</li>
-                <li>2. Richtung einstellen (Quelle ↔ Ziel).</li>
+                <li>2. Richtung einstellen (Quelle â†” Ziel).</li>
                 <li>
                   3. Woerter korrekt schreiben; richtige verschwinden bis Ende
                   der Lektion.
@@ -712,7 +712,7 @@ function LessonTrainer({
                   {isActive && !showAnswer && (
                     <form
                       onSubmit={handleSubmit}
-                      className="mt-3 space-y-2"
+                      className="mt-3 flex flex-col items-center space-y-3"
                       onClick={(e) => e.stopPropagation()}
                       onDoubleClick={(e) => e.stopPropagation()}
                     >
@@ -730,7 +730,7 @@ function LessonTrainer({
                       {word.partOfSpeech === "verb" &&
                       selectedTense &&
                       word.forms?.conjugations?.[selectedTense] ? (
-                        <div className="space-y-2">
+                        <div className="flex w-full flex-col items-center gap-2">
                           {word.forms.conjugations[selectedTense]!.map(
                             (_, idx) => {
                               const labels =
@@ -741,9 +741,9 @@ function LessonTrainer({
                               return (
                                 <label
                                   key={idx}
-                                  className="block text-sm text-slate-700"
+                                  className="block w-full text-center text-sm text-slate-700"
                                 >
-                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                  <span className="mb-1 block text-xs font-semibold text-slate-500">
                                     {label}
                                   </span>
                                   <input
@@ -755,7 +755,7 @@ function LessonTrainer({
                                         return { ...prev, [word.id]: next };
                                       })
                                     }
-                                    className="mt-1 w-full max-w-[220px] mx-auto rounded-lg border border-slate-200 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    className="w-full max-w-[220px] mx-auto rounded-lg border border-slate-200 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                                     autoComplete="off"
                                     onClick={(e) => e.stopPropagation()}
                                     onDoubleClick={(e) => e.stopPropagation()}
@@ -877,7 +877,7 @@ function LessonWord({ entry }: { entry: WordEntry }) {
               {entry.targets
                 .filter((t) => t.note)
                 .map((t) => `${t.text}: ${t.note}`)
-                .join(" • ")}
+                .join(" â€¢ ")}
             </p>
           )}
         </div>
@@ -888,3 +888,4 @@ function LessonWord({ entry }: { entry: WordEntry }) {
     </div>
   );
 }
+
