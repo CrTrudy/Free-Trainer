@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { lessons, type Lesson, type WordEntry } from "../data/vocab";
 
 type Direction = "source-to-target" | "target-to-source";
@@ -247,6 +247,7 @@ function LessonTrainer({
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [answer, setAnswer] = useState("");
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setActiveWordId(null);
@@ -255,6 +256,12 @@ function LessonTrainer({
     setAnswer("");
     setHiddenIds([]);
   }, [activeLesson?.id]);
+
+  useEffect(() => {
+    if (activeWordId && !showAnswer && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [activeWordId, showAnswer]);
 
   const isReverse = direction === "target-to-source";
 
@@ -452,6 +459,7 @@ function LessonTrainer({
                         </div>
                       )}
                       <input
+                        ref={isActive ? inputRef : null}
                         value={answer}
                         onChange={(evt) => setAnswer(evt.target.value)}
                         placeholder={isReverse ? "Russisch eingeben..." : "Deutsch eingeben..."}
