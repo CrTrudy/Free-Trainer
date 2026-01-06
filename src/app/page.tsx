@@ -1,7 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { lessons, type Lesson, type Tense, type WordEntry } from "../data/vocab";
+import {
+  lessons,
+  type Lesson,
+  type Tense,
+  type WordEntry,
+} from "../data/vocab";
 
 type Direction = "source-to-target" | "target-to-source";
 
@@ -19,23 +24,36 @@ const normalize = (value: string) =>
 
 export default function Home() {
   const languagePairs = Array.from(
-    new Set(lessons.map((lesson) => `${lesson.languagePair.from}-${lesson.languagePair.to}`)),
+    new Set(
+      lessons.map(
+        (lesson) => `${lesson.languagePair.from}-${lesson.languagePair.to}`
+      )
+    )
   );
   const [pairKey, setPairKey] = useState(languagePairs[0] ?? "ru-de");
 
   const lessonsForPair = useMemo(
-    () => lessons.filter((l) => `${l.languagePair.from}-${l.languagePair.to}` === pairKey),
-    [pairKey],
+    () =>
+      lessons.filter(
+        (l) => `${l.languagePair.from}-${l.languagePair.to}` === pairKey
+      ),
+    [pairKey]
   );
 
   const categories = Array.from(new Set(lessonsForPair.map((l) => l.category)));
   const [category, setCategory] = useState<string>(categories[0] ?? "");
 
   const filteredLessons = lessonsForPair.filter((l) => l.category === category);
-  const [lessonId, setLessonId] = useState<string>(filteredLessons[0]?.id ?? "");
+  const [lessonId, setLessonId] = useState<string>(
+    filteredLessons[0]?.id ?? ""
+  );
 
-  const safeCategory = categories.includes(category) ? category : categories[0] ?? "";
-  const lessonsByCategory = lessonsForPair.filter((l) => l.category === safeCategory);
+  const safeCategory = categories.includes(category)
+    ? category
+    : categories[0] ?? "";
+  const lessonsByCategory = lessonsForPair.filter(
+    (l) => l.category === safeCategory
+  );
   const safeLessonId = lessonsByCategory.some((l) => l.id === lessonId)
     ? lessonId
     : lessonsByCategory[0]?.id ?? "";
@@ -51,8 +69,16 @@ export default function Home() {
   const categoryStats = useMemo(() => {
     const map: Record<string, Stat> = {};
     lessonsForPair.forEach((lesson) => {
-      const stat = lessonStats[lesson.id] ?? { correct: 0, wrong: 0, completed: 0 };
-      const prev = map[lesson.category] ?? { correct: 0, wrong: 0, completed: 0 };
+      const stat = lessonStats[lesson.id] ?? {
+        correct: 0,
+        wrong: 0,
+        completed: 0,
+      };
+      const prev = map[lesson.category] ?? {
+        correct: 0,
+        wrong: 0,
+        completed: 0,
+      };
       map[lesson.category] = {
         correct: prev.correct + stat.correct,
         wrong: prev.wrong + stat.wrong,
@@ -65,14 +91,18 @@ export default function Home() {
   const totalStats = useMemo(() => {
     return lessonsForPair.reduce(
       (acc, lesson) => {
-        const stat = lessonStats[lesson.id] ?? { correct: 0, wrong: 0, completed: 0 };
+        const stat = lessonStats[lesson.id] ?? {
+          correct: 0,
+          wrong: 0,
+          completed: 0,
+        };
         return {
           correct: acc.correct + stat.correct,
           wrong: acc.wrong + stat.wrong,
           completed: acc.completed + stat.completed,
         };
       },
-      { correct: 0, wrong: 0, completed: 0 },
+      { correct: 0, wrong: 0, completed: 0 }
     );
   }, [lessonStats, lessonsForPair]);
 
@@ -94,14 +124,17 @@ export default function Home() {
         <header className="rounded-3xl bg-gradient-to-r from-blue-600 via-sky-600 to-blue-500 px-6 py-8 text-white shadow-lg">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] opacity-80">Vokabel Trainer</p>
+              <p className="text-xs uppercase tracking-[0.2em] opacity-80">
+                Vokabel Trainer
+              </p>
               <h1 className="mt-2 text-3xl font-semibold md:text-4xl">
                 Lektionen ueben, schreiben, merken
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-blue-100">
-                Waehle Kategorie und Lektion (10-15 Woerter), arbeite alle Woerter ab.
-                Korrekte Woerter verschwinden bis die Lektion abgeschlossen ist. Mit
-                Mehrdeutigkeiten, Transkription und Konjugationshinweisen.
+                Waehle Kategorie und Lektion (10-15 Woerter), arbeite alle
+                Woerter ab. Korrekte Woerter verschwinden bis die Lektion
+                abgeschlossen ist. Mit Mehrdeutigkeiten, Transkription und
+                Konjugationshinweisen.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -112,13 +145,18 @@ export default function Home() {
                   const nextCategories = Array.from(
                     new Set(
                       lessons
-                        .filter((l) => `${l.languagePair.from}-${l.languagePair.to}` === v)
-                        .map((l) => l.category),
-                    ),
+                        .filter(
+                          (l) =>
+                            `${l.languagePair.from}-${l.languagePair.to}` === v
+                        )
+                        .map((l) => l.category)
+                    )
                   );
                   const nextCategory = nextCategories[0] ?? "";
                   const nextLessons = lessons.filter(
-                    (l) => `${l.languagePair.from}-${l.languagePair.to}` === v && l.category === nextCategory,
+                    (l) =>
+                      `${l.languagePair.from}-${l.languagePair.to}` === v &&
+                      l.category === nextCategory
                   );
                   setPairKey(v);
                   setCategory(nextCategory);
@@ -146,7 +184,11 @@ export default function Home() {
           <section className="rounded-3xl border border-blue-100 bg-white/90 p-6 shadow-sm backdrop-blur">
             <div className="flex flex-wrap gap-2">
               {categories.map((cat) => {
-                const stat = categoryStats[cat] ?? { correct: 0, wrong: 0, completed: 0 };
+                const stat = categoryStats[cat] ?? {
+                  correct: 0,
+                  wrong: 0,
+                  completed: 0,
+                };
                 return (
                   <button
                     key={cat}
@@ -173,27 +215,38 @@ export default function Home() {
                 onSelectLesson={(id) => setLessonId(id)}
                 direction={direction}
                 selectedTense={safeCategory === "Verben" ? tense : undefined}
-                onResult={(lessonKey, isCorrect) => updateStats(lessonKey, isCorrect)}
+                onResult={(lessonKey, isCorrect) =>
+                  updateStats(lessonKey, isCorrect)
+                }
               />
             </div>
           </section>
 
           <aside className="space-y-4">
             <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">Kategorie-Statistik</h2>
+              <h2 className="text-lg font-semibold text-slate-900">
+                Kategorie-Statistik
+              </h2>
               <div className="mt-3 grid grid-cols-1 gap-2 text-sm">
                 {categories.map((cat) => {
-                  const stat = categoryStats[cat] ?? { correct: 0, wrong: 0, completed: 0 };
+                  const stat = categoryStats[cat] ?? {
+                    correct: 0,
+                    wrong: 0,
+                    completed: 0,
+                  };
                   return (
                     <div
                       key={cat}
                       className={`flex items-center justify-between rounded-xl border px-3 py-2 ${
-                        safeCategory === cat ? "border-blue-200 bg-blue-50" : "border-slate-100 bg-slate-50"
+                        safeCategory === cat
+                          ? "border-blue-200 bg-blue-50"
+                          : "border-slate-100 bg-slate-50"
                       }`}
                     >
                       <span className="font-semibold">{cat}</span>
                       <span className="text-xs text-slate-600">
-                        {stat.correct} richtig / {stat.wrong} falsch / {stat.completed}x abgeschlossen
+                        {stat.correct} richtig / {stat.wrong} falsch /{" "}
+                        {stat.completed}x abgeschlossen
                       </span>
                     </div>
                   );
@@ -202,19 +255,26 @@ export default function Home() {
             </div>
 
             <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100 p-5 shadow-sm">
-              <h2 className="text-lg font-semibold text-emerald-900">Gesamt (Sprachpaar)</h2>
+              <h2 className="text-lg font-semibold text-emerald-900">
+                Gesamt (Sprachpaar)
+              </h2>
               <p className="mt-1 text-sm text-emerald-800">
-                Richtig: {totalStats.correct} · Falsch: {totalStats.wrong} · Abgeschlossene Lektionen:{" "}
-                {totalStats.completed}
+                Richtig: {totalStats.correct} · Falsch: {totalStats.wrong} ·
+                Abgeschlossene Lektionen: {totalStats.completed}
               </p>
             </div>
 
             <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">So funktioniert es</h2>
+              <h2 className="text-lg font-semibold text-slate-900">
+                So funktioniert es
+              </h2>
               <ol className="mt-3 space-y-2 text-sm text-slate-700">
                 <li>1. Kategorie und Lektion waehlen.</li>
                 <li>2. Richtung einstellen (Quelle ↔ Ziel).</li>
-                <li>3. Woerter korrekt schreiben; richtige verschwinden bis Ende der Lektion.</li>
+                <li>
+                  3. Woerter korrekt schreiben; richtige verschwinden bis Ende
+                  der Lektion.
+                </li>
                 <li>4. Bei Abschluss neu starten, um erneut zu ueben.</li>
               </ol>
             </div>
@@ -241,11 +301,17 @@ function LessonTrainer({
   onResult: (lessonId: string, isCorrect: boolean) => void;
 }) {
   const orderedLessons = useMemo(
-    () => lessons.map((l) => ({ ...l, words: [...l.words].sort((a, b) => a.frequencyRank - b.frequencyRank) })),
-    [lessons],
+    () =>
+      lessons.map((l) => ({
+        ...l,
+        words: [...l.words].sort((a, b) => a.frequencyRank - b.frequencyRank),
+      })),
+    [lessons]
   );
   const activeLesson =
-    orderedLessons.find((l) => l.id === selectedLessonId) ?? orderedLessons[0] ?? null;
+    orderedLessons.find((l) => l.id === selectedLessonId) ??
+    orderedLessons[0] ??
+    null;
   const [activeWordId, setActiveWordId] = useState<string | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
@@ -290,20 +356,31 @@ function LessonTrainer({
     setAnswer("");
   };
 
-  const activeWord = activeLesson?.words.find((w) => w.id === activeWordId) ?? null;
+  const activeWord =
+    activeLesson?.words.find((w) => w.id === activeWordId) ?? null;
 
   const handleSubmit = (evt: FormEvent) => {
     evt.preventDefault();
     if (!activeLesson || !activeWord) return;
     let expectedList: string[] = [];
-    if (activeWord.partOfSpeech === "verb" && selectedTense && activeWord.forms?.conjugations?.[selectedTense]) {
-      expectedList = (activeWord.forms.conjugations[selectedTense] ?? []).map((f) => normalize(f));
+    if (
+      activeWord.partOfSpeech === "verb" &&
+      selectedTense &&
+      activeWord.forms?.conjugations?.[selectedTense]
+    ) {
+      expectedList = (activeWord.forms.conjugations[selectedTense] ?? []).map(
+        (f) => normalize(f)
+      );
     } else {
       expectedList = isReverse
         ? [normalize(activeWord.source)]
-        : activeWord.targets.map((t) => normalize(t.text.split("/")[0] ?? t.text));
+        : activeWord.targets.map((t) =>
+            normalize(t.text.split("/")[0] ?? t.text)
+          );
     }
-    const isCorrect = expectedList.some((expected) => normalize(answer) === expected);
+    const isCorrect = expectedList.some(
+      (expected) => normalize(answer) === expected
+    );
     setFeedback(isCorrect ? "correct" : "wrong");
     onResult(activeLesson.id, isCorrect);
 
@@ -312,7 +389,9 @@ function LessonTrainer({
       setShowAnswer(false);
       setAnswer("");
       setHiddenIds((prev) => {
-        const next = prev.includes(activeWord.id) ? prev : [...prev, activeWord.id];
+        const next = prev.includes(activeWord.id)
+          ? prev
+          : [...prev, activeWord.id];
         if (next.length >= activeLesson.words.length) {
           // Reset, alle wieder sichtbar machen
           setTimeout(() => {
@@ -328,7 +407,8 @@ function LessonTrainer({
     }
   };
 
-  const visibleWords = activeLesson?.words.filter((w) => !hiddenIds.includes(w.id)) ?? [];
+  const visibleWords =
+    activeLesson?.words.filter((w) => !hiddenIds.includes(w.id)) ?? [];
 
   return (
     <div className="space-y-4">
@@ -356,7 +436,9 @@ function LessonTrainer({
 
       {activeLesson ? (
         <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">{activeLesson.title}</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            {activeLesson.title}
+          </h2>
 
           <div className="mt-4 space-y-3">
             {visibleWords.length === 0 ? (
@@ -366,8 +448,12 @@ function LessonTrainer({
             ) : null}
             {visibleWords.map((word) => {
               const isActive = activeWordId === word.id;
-              const front = isReverse ? word.targets.map((t) => t.text).join(", ") : word.source;
-              const back = isReverse ? word.source : word.targets.map((t) => t.text).join(", ");
+              const front = isReverse
+                ? word.targets.map((t) => t.text).join(", ")
+                : word.source;
+              const back = isReverse
+                ? word.source
+                : word.targets.map((t) => t.text).join(", ");
               const handleLeft = () => {
                 if (activeWordId === word.id && !showAnswer) {
                   setActiveWordId(null);
@@ -382,7 +468,9 @@ function LessonTrainer({
               };
               const handleRight = () => {
                 setActiveWordId(word.id);
-                setShowAnswer((prev) => (activeWordId === word.id ? !prev : true));
+                setShowAnswer((prev) =>
+                  activeWordId === word.id ? !prev : true
+                );
                 setFeedback(null);
                 setAnswer("");
               };
@@ -390,7 +478,9 @@ function LessonTrainer({
                 <div
                   key={word.id}
                   className={`rounded-xl border px-4 py-3 shadow-sm ${
-                    isActive ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-slate-50"
+                    isActive
+                      ? "border-blue-200 bg-blue-50"
+                      : "border-slate-200 bg-slate-50"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -402,26 +492,36 @@ function LessonTrainer({
                         handleLeft();
                       }}
                     >
-                      <p className="text-xl font-semibold text-slate-900">{front}</p>
+                      <p className="text-xl font-semibold text-slate-900">
+                        {front}
+                      </p>
                       {isActive && showAnswer && (
                         <>
-                          {word.translit && <p className="text-sm text-slate-600">Translit: {word.translit}</p>}
-                          {word.partOfSpeech === "verb" && selectedTense && word.forms?.conjugations?.[selectedTense] && (
-                            <div className="mt-1 text-sm text-slate-700">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                {selectedTense === "present"
-                                  ? "Gegenwart"
-                                  : selectedTense === "past"
+                          {word.translit && (
+                            <p className="text-sm text-slate-600">
+                              Translit: {word.translit}
+                            </p>
+                          )}
+                          {word.partOfSpeech === "verb" &&
+                            selectedTense &&
+                            word.forms?.conjugations?.[selectedTense] && (
+                              <div className="mt-1 text-sm text-slate-700">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                  {selectedTense === "present"
+                                    ? "Gegenwart"
+                                    : selectedTense === "past"
                                     ? "Vergangenheit"
                                     : "Zukunft"}
-                              </p>
-                              <ul className="mt-1 space-y-1">
-                                {word.forms.conjugations[selectedTense]!.map((form) => (
-                                  <li key={form}>{form}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
+                                </p>
+                                <ul className="mt-1 space-y-1">
+                                  {word.forms.conjugations[selectedTense]!.map(
+                                    (form) => (
+                                      <li key={form}>{form}</li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
                           <div className="text-sm text-slate-700">
                             {word.targets.some((t) => t.note) && (
                               <ul className="mt-1 space-y-1">
@@ -431,16 +531,24 @@ function LessonTrainer({
                                       <li key={t.text}>
                                         {t.text}: {t.note}
                                       </li>
-                                    ),
+                                    )
                                 )}
                               </ul>
                             )}
                             {word.forms && (
                               <div className="mt-1">
-                                {word.forms.irregular && <div>Unregelmaessig: {word.forms.irregular}</div>}
-                                {word.forms.missing && word.forms.missing.length > 0 && (
-                                  <div>Nicht ueblich: {word.forms.missing.join(", ")}</div>
+                                {word.forms.irregular && (
+                                  <div>
+                                    Unregelmaessig: {word.forms.irregular}
+                                  </div>
                                 )}
+                                {word.forms.missing &&
+                                  word.forms.missing.length > 0 && (
+                                    <div>
+                                      Nicht ueblich:{" "}
+                                      {word.forms.missing.join(", ")}
+                                    </div>
+                                  )}
                               </div>
                             )}
                             {word.examples && (
@@ -487,7 +595,11 @@ function LessonTrainer({
                         ref={isActive ? inputRef : null}
                         value={answer}
                         onChange={(evt) => setAnswer(evt.target.value)}
-                        placeholder={isReverse ? "Russisch eingeben..." : "Deutsch eingeben..."}
+                        placeholder={
+                          isReverse
+                            ? "Russisch eingeben..."
+                            : "Deutsch eingeben..."
+                        }
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                         autoComplete="off"
                         onClick={(e) => e.stopPropagation()}
@@ -528,7 +640,9 @@ type StatBadgeProps = {
 function StatBadge({ label, value }: StatBadgeProps) {
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center shadow-sm">
-      <p className="text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="text-[11px] uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
       <p className="text-lg font-semibold text-slate-900">{value}</p>
     </div>
   );
@@ -547,7 +661,9 @@ function SelectPill({
 }) {
   return (
     <label className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow">
-      <span className="uppercase tracking-wide text-[11px] text-blue-100">{label}</span>
+      <span className="uppercase tracking-wide text-[11px] text-blue-100">
+        {label}
+      </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -570,9 +686,13 @@ function LessonWord({ entry }: { entry: WordEntry }) {
         <div>
           <p className="font-semibold text-slate-900">
             {entry.source}{" "}
-            {entry.translit && <span className="text-slate-500">({entry.translit})</span>}
+            {entry.translit && (
+              <span className="text-slate-500">({entry.translit})</span>
+            )}
           </p>
-          <p className="text-sm text-slate-700">{entry.targets.map((t) => t.text).join(", ")}</p>
+          <p className="text-sm text-slate-700">
+            {entry.targets.map((t) => t.text).join(", ")}
+          </p>
           {entry.targets.some((t) => t.note) && (
             <p className="text-xs text-slate-500">
               {entry.targets
@@ -591,7 +711,7 @@ function LessonWord({ entry }: { entry: WordEntry }) {
 }
 
 // WordExerciseCard entfernt (nicht mehr genutzt)
-              {safeCategory === "Verben" && (
+/*  {safeCategory === "Verben" && (
                 <SelectPill
                   label="Zeitform"
                   value={tense}
@@ -603,3 +723,4 @@ function LessonWord({ entry }: { entry: WordEntry }) {
                   ]}
                 />
               )}
+ */
