@@ -735,15 +735,8 @@ function LessonTrainer({
                             (_, idx) => {
                               const labels =
                                 selectedTense === "past"
-                                  ? ["mask.", "fem.", "Plural"]
-                                  : [
-                                      "1. Sg",
-                                      "2. Sg",
-                                      "3. Sg",
-                                      "1. Pl",
-                                      "2. Pl",
-                                      "3. Pl",
-                                    ];
+                                  ? ["мужской", "женский", "множественное"]
+                                  : ["я", "ты", "он/она/оно", "мы", "вы", "они"];
                               const label = labels[idx] ?? `Form ${idx + 1}`;
                               return (
                                 <label
@@ -762,7 +755,7 @@ function LessonTrainer({
                                         return { ...prev, [word.id]: next };
                                       })
                                     }
-                                    className="mt-1 w-full max-w-xs mx-auto rounded-lg border border-slate-200 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    className="mt-1 w-full max-w-[220px] mx-auto rounded-lg border border-slate-200 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                                     autoComplete="off"
                                     onClick={(e) => e.stopPropagation()}
                                     onDoubleClick={(e) => e.stopPropagation()}
