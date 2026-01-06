@@ -106,6 +106,12 @@ export default function Home() {
     );
   }, [lessonStats, lessonsForPair]);
 
+  const activeCategoryStat = categoryStats[safeCategory] ?? {
+    correct: 0,
+    wrong: 0,
+    completed: 0,
+  };
+
   const updateStats = (lessonKey: string, isCorrect: boolean) => {
     setLessonStats((prev) => {
       const current = prev[lessonKey] ?? { correct: 0, wrong: 0, completed: 0 };
@@ -182,43 +188,112 @@ export default function Home() {
 
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <section className="rounded-3xl border border-blue-100 bg-white/90 p-6 shadow-sm backdrop-blur">
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => {
-                const stat = categoryStats[cat] ?? {
-                  correct: 0,
-                  wrong: 0,
-                  completed: 0,
-                };
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setCategory(cat)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                      safeCategory === cat
-                        ? "bg-blue-600 text-white shadow"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    }`}
-                  >
-                    {cat}
-                    <span className="ml-2 text-xs font-medium text-white/80">
-                      {stat.correct}/{stat.wrong}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-slate-50 via-white to-blue-50 p-4 shadow-inner">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                      Kategorien
+                    </p>
+                    <p className="text-sm text-slate-700">
+                      Waehle eine Kategorie, um passende Lektionen zu sehen.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((cat) => {
+                      const stat = categoryStats[cat] ?? {
+                        correct: 0,
+                        wrong: 0,
+                        completed: 0,
+                      };
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setCategory(cat)}
+                          className={`group rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                            safeCategory === cat
+                              ? "border-blue-300 bg-white text-blue-700 ring-2 ring-blue-100"
+                              : "border-slate-200 bg-white/80 text-slate-700 hover:border-blue-200 hover:text-blue-700"
+                          }`}
+                        >
+                          {cat}
+                          <span
+                            className={`ml-2 text-xs font-medium ${
+                              safeCategory === cat
+                                ? "text-blue-600"
+                                : "text-slate-500"
+                            }`}
+                          >
+                            {stat.correct}/{stat.wrong}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
 
-            <div className="mt-6">
-              <LessonTrainer
-                lessons={lessonsByCategory}
-                selectedLessonId={safeLessonId}
-                onSelectLesson={(id) => setLessonId(id)}
-                direction={direction}
-                selectedTense={safeCategory === "Verben" ? tense : undefined}
-                onResult={(lessonKey, isCorrect) =>
-                  updateStats(lessonKey, isCorrect)
-                }
-              />
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                      <span className="h-2 w-2 rounded-full bg-blue-400" />
+                      {safeCategory}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {lessonsByCategory.length} Lektion
+                      {lessonsByCategory.length === 1 ? "" : "en"} ·{" "}
+                      {activeLesson?.words.length ?? 0} Vokabeln
+                    </span>
+                  </div>
+                  {safeCategory === "Verben" && (
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                      <span className="uppercase tracking-wide text-[10px] text-slate-500">
+                        Zeitform
+                      </span>
+                      <select
+                        value={tense}
+                        onChange={(e) => setTense(e.target.value as Tense)}
+                        className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      >
+                        <option value="present">Gegenwart</option>
+                        <option value="past">Vergangenheit</option>
+                        <option value="future">Zukunft</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatBadge
+                    label="Richtig"
+                    value={`${activeCategoryStat.correct}`}
+                  />
+                  <StatBadge
+                    label="Falsch"
+                    value={`${activeCategoryStat.wrong}`}
+                  />
+                  <StatBadge
+                    label="Abgeschlossen"
+                    value={`${activeCategoryStat.completed}`}
+                  />
+                </div>
+
+                <div className="mt-5">
+                  <LessonTrainer
+                    lessons={lessonsByCategory}
+                    selectedLessonId={safeLessonId}
+                    onSelectLesson={(id) => setLessonId(id)}
+                    direction={direction}
+                    selectedTense={
+                      safeCategory === "Verben" ? tense : undefined
+                    }
+                    onResult={(lessonKey, isCorrect) =>
+                      updateStats(lessonKey, isCorrect)
+                    }
+                  />
+                </div>
+              </div>
             </div>
           </section>
 
@@ -354,7 +429,10 @@ function LessonTrainer({
         word.forms?.conjugations?.[selectedTense]
       ) {
         const count = word.forms.conjugations[selectedTense]!.length;
-        setConjAnswers((prev) => ({ ...prev, [wordId]: Array(count).fill("") }));
+        setConjAnswers((prev) => ({
+          ...prev,
+          [wordId]: Array(count).fill(""),
+        }));
       }
     }
   };
@@ -407,7 +485,9 @@ function LessonTrainer({
       isCorrect =
         expectedList.length > 0 &&
         expectedList.length === answers.length &&
-        expectedList.every((expected, idx) => normalize(answers[idx] ?? "") === expected);
+        expectedList.every(
+          (expected, idx) => normalize(answers[idx] ?? "") === expected
+        );
     } else {
       isCorrect = expectedList.some(
         (expected) => normalize(answer) === expected
@@ -473,7 +553,7 @@ function LessonTrainer({
             {activeLesson.title}
           </h2>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-3 max-w-2xl mx-auto">
             {visibleWords.length === 0 ? (
               <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                 Alle Woerter korrekt! Die Lektion wurde zurueckgesetzt.
@@ -502,7 +582,8 @@ function LessonTrainer({
                     selectedTense &&
                     word.forms?.conjugations?.[selectedTense]
                   ) {
-                    const count = word.forms.conjugations[selectedTense]!.length;
+                    const count =
+                      word.forms.conjugations[selectedTense]!.length;
                     setConjAnswers((prev) => ({
                       ...prev,
                       [word.id]: Array(count).fill(""),
@@ -540,7 +621,7 @@ function LessonTrainer({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div
-                      className="flex-1 cursor-pointer"
+                      className="flex-1 cursor-pointer text-center"
                       onClick={handleLeft}
                       onDoubleClick={(e) => {
                         e.stopPropagation();
@@ -655,7 +736,14 @@ function LessonTrainer({
                               const labels =
                                 selectedTense === "past"
                                   ? ["mask.", "fem.", "Plural"]
-                                  : ["1. Sg", "2. Sg", "3. Sg", "1. Pl", "2. Pl", "3. Pl"];
+                                  : [
+                                      "1. Sg",
+                                      "2. Sg",
+                                      "3. Sg",
+                                      "1. Pl",
+                                      "2. Pl",
+                                      "3. Pl",
+                                    ];
                               const label = labels[idx] ?? `Form ${idx + 1}`;
                               return (
                                 <label
@@ -674,11 +762,13 @@ function LessonTrainer({
                                         return { ...prev, [word.id]: next };
                                       })
                                     }
-                                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    className="mt-1 w-full max-w-xs mx-auto rounded-lg border border-slate-200 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                                     autoComplete="off"
                                     onClick={(e) => e.stopPropagation()}
                                     onDoubleClick={(e) => e.stopPropagation()}
-                                    ref={isActive && idx === 0 ? inputRef : null}
+                                    ref={
+                                      isActive && idx === 0 ? inputRef : null
+                                    }
                                   />
                                 </label>
                               );
@@ -695,7 +785,7 @@ function LessonTrainer({
                               ? "Russisch eingeben..."
                               : "Deutsch eingeben..."
                           }
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          className="w-full max-w-md mx-auto rounded-lg border border-slate-200 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                           autoComplete="off"
                           onClick={(e) => e.stopPropagation()}
                           onDoubleClick={(e) => e.stopPropagation()}
@@ -707,7 +797,7 @@ function LessonTrainer({
 
                   {isActive && showAnswer && (
                     <div
-                      className="mt-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-800 shadow-inner"
+                      className="mt-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-800 shadow-inner text-center"
                       onClick={(e) => e.stopPropagation()}
                       onDoubleClick={(e) => e.stopPropagation()}
                     >
@@ -805,18 +895,3 @@ function LessonWord({ entry }: { entry: WordEntry }) {
     </div>
   );
 }
-
-// WordExerciseCard entfernt (nicht mehr genutzt)
-/*  {safeCategory === "Verben" && (
-                <SelectPill
-                  label="Zeitform"
-                  value={tense}
-                  onChange={(value) => setTense(value as Tense)}
-                  options={[
-                    { label: "Gegenwart", value: "present" },
-                    { label: "Vergangenheit", value: "past" },
-                    { label: "Zukunft", value: "future" },
-                  ]}
-                />
-              )}
- */
