@@ -316,6 +316,7 @@ function LessonTrainer({
   const [showAnswer, setShowAnswer] = useState(false);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [answer, setAnswer] = useState("");
+  const [conjAnswers, setConjAnswers] = useState<Record<string, string[]>>({});
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -325,6 +326,7 @@ function LessonTrainer({
     setFeedback(null);
     setAnswer("");
     setHiddenIds([]);
+    setConjAnswers({});
   }, [activeLesson?.id]);
 
   useEffect(() => {
@@ -335,7 +337,7 @@ function LessonTrainer({
 
   const isReverse = direction === "target-to-source";
 
-  const handleSelectWord = (wordId: string) => {
+  const handleSelectWord = (wordId: string, word: WordEntry) => {
     if (activeWordId === wordId) {
       setActiveWordId(null);
       setShowAnswer(false);
@@ -346,14 +348,30 @@ function LessonTrainer({
       setShowAnswer(false);
       setFeedback(null);
       setAnswer("");
+      if (
+        word.partOfSpeech === "verb" &&
+        selectedTense &&
+        word.forms?.conjugations?.[selectedTense]
+      ) {
+        const count = word.forms.conjugations[selectedTense]!.length;
+        setConjAnswers((prev) => ({ ...prev, [wordId]: Array(count).fill("") }));
+      }
     }
   };
 
-  const handleDoubleClickWord = (wordId: string) => {
+  const handleDoubleClickWord = (wordId: string, word: WordEntry) => {
     setActiveWordId(wordId);
     setShowAnswer(true);
     setFeedback(null);
     setAnswer("");
+    if (
+      word.partOfSpeech === "verb" &&
+      selectedTense &&
+      word.forms?.conjugations?.[selectedTense]
+    ) {
+      const count = word.forms.conjugations[selectedTense]!.length;
+      setConjAnswers((prev) => ({ ...prev, [wordId]: Array(count).fill("") }));
+    }
   };
 
   const activeWord =
@@ -378,9 +396,23 @@ function LessonTrainer({
             normalize(t.text.split("/")[0] ?? t.text)
           );
     }
-    const isCorrect = expectedList.some(
-      (expected) => normalize(answer) === expected
-    );
+    const isVerbWithConj =
+      activeWord.partOfSpeech === "verb" &&
+      selectedTense &&
+      activeWord.forms?.conjugations?.[selectedTense];
+
+    let isCorrect = false;
+    if (isVerbWithConj) {
+      const answers = conjAnswers[activeWord.id] ?? [];
+      isCorrect =
+        expectedList.length > 0 &&
+        expectedList.length === answers.length &&
+        expectedList.every((expected, idx) => normalize(answers[idx] ?? "") === expected);
+    } else {
+      isCorrect = expectedList.some(
+        (expected) => normalize(answer) === expected
+      );
+    }
     setFeedback(isCorrect ? "correct" : "wrong");
     onResult(activeLesson.id, isCorrect);
 
@@ -388,6 +420,7 @@ function LessonTrainer({
       setActiveWordId(null);
       setShowAnswer(false);
       setAnswer("");
+      setConjAnswers((prev) => ({ ...prev, [activeWord.id]: [] }));
       setHiddenIds((prev) => {
         const next = prev.includes(activeWord.id)
           ? prev
@@ -464,6 +497,17 @@ function LessonTrainer({
                   setShowAnswer(false);
                   setFeedback(null);
                   setAnswer("");
+                  if (
+                    word.partOfSpeech === "verb" &&
+                    selectedTense &&
+                    word.forms?.conjugations?.[selectedTense]
+                  ) {
+                    const count = word.forms.conjugations[selectedTense]!.length;
+                    setConjAnswers((prev) => ({
+                      ...prev,
+                      [word.id]: Array(count).fill(""),
+                    }));
+                  }
                 }
               };
               const handleRight = () => {
@@ -473,6 +517,17 @@ function LessonTrainer({
                 );
                 setFeedback(null);
                 setAnswer("");
+                if (
+                  word.partOfSpeech === "verb" &&
+                  selectedTense &&
+                  word.forms?.conjugations?.[selectedTense]
+                ) {
+                  const count = word.forms.conjugations[selectedTense]!.length;
+                  setConjAnswers((prev) => ({
+                    ...prev,
+                    [word.id]: Array(count).fill(""),
+                  }));
+                }
               };
               return (
                 <div
@@ -591,20 +646,61 @@ function LessonTrainer({
                           {feedback === "correct" ? "Richtig" : "Falsch"}
                         </div>
                       )}
-                      <input
-                        ref={isActive ? inputRef : null}
-                        value={answer}
-                        onChange={(evt) => setAnswer(evt.target.value)}
-                        placeholder={
-                          isReverse
-                            ? "Russisch eingeben..."
-                            : "Deutsch eingeben..."
-                        }
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                        autoComplete="off"
-                        onClick={(e) => e.stopPropagation()}
-                        onDoubleClick={(e) => e.stopPropagation()}
-                      />
+                      {word.partOfSpeech === "verb" &&
+                      selectedTense &&
+                      word.forms?.conjugations?.[selectedTense] ? (
+                        <div className="space-y-2">
+                          {word.forms.conjugations[selectedTense]!.map(
+                            (_, idx) => {
+                              const labels =
+                                selectedTense === "past"
+                                  ? ["mask.", "fem.", "Plural"]
+                                  : ["1. Sg", "2. Sg", "3. Sg", "1. Pl", "2. Pl", "3. Pl"];
+                              const label = labels[idx] ?? `Form ${idx + 1}`;
+                              return (
+                                <label
+                                  key={idx}
+                                  className="block text-sm text-slate-700"
+                                >
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    {label}
+                                  </span>
+                                  <input
+                                    value={conjAnswers[word.id]?.[idx] ?? ""}
+                                    onChange={(evt) =>
+                                      setConjAnswers((prev) => {
+                                        const next = [...(prev[word.id] ?? [])];
+                                        next[idx] = evt.target.value;
+                                        return { ...prev, [word.id]: next };
+                                      })
+                                    }
+                                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    autoComplete="off"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onDoubleClick={(e) => e.stopPropagation()}
+                                    ref={isActive && idx === 0 ? inputRef : null}
+                                  />
+                                </label>
+                              );
+                            }
+                          )}
+                        </div>
+                      ) : (
+                        <input
+                          ref={isActive ? inputRef : null}
+                          value={answer}
+                          onChange={(evt) => setAnswer(evt.target.value)}
+                          placeholder={
+                            isReverse
+                              ? "Russisch eingeben..."
+                              : "Deutsch eingeben..."
+                          }
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          autoComplete="off"
+                          onClick={(e) => e.stopPropagation()}
+                          onDoubleClick={(e) => e.stopPropagation()}
+                        />
+                      )}
                       <input type="submit" className="hidden" />
                     </form>
                   )}
