@@ -221,16 +221,6 @@ export default function Home() {
 
               <div className="space-y-3">
                 <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-slate-800">
-                    Lektion: Woerter (sortiert nach Haeufigkeit)
-                  </h3>
-                  <div className="mt-3 grid max-h-56 grid-cols-1 gap-2 overflow-y-auto">
-                    {lessonWords.map((word) => (
-                      <LessonWord key={word.id} entry={word} />
-                    ))}
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
                   <h3 className="text-sm font-semibold text-slate-800">Statistik</h3>
                   <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
                     <StatBadge label="Richtig" value={(lessonStats[safeLessonId]?.correct ?? 0).toString()} />
@@ -281,6 +271,15 @@ export default function Home() {
                 <li>3. Woerter korrekt schreiben; richtige verschwinden bis Ende der Lektion.</li>
                 <li>4. Bei Abschluss neu starten, um erneut zu ueben.</li>
               </ol>
+            </div>
+
+            <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900">Alle Woerter der Lektion</h2>
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                {lessonWords.map((word) => (
+                  <WordExerciseCard key={word.id} entry={word} direction={direction} />
+                ))}
+              </div>
             </div>
           </aside>
         </div>
@@ -547,6 +546,42 @@ function LessonWord({ entry }: { entry: WordEntry }) {
         <div className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm">
           #{entry.frequencyRank}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function WordExerciseCard({ entry, direction }: { entry: WordEntry; direction: Direction }) {
+  const isReverse = direction === "target-to-source";
+  const prompt = isReverse ? "Uebersetze nach Russisch" : "Uebersetze nach Deutsch";
+  const front = isReverse ? entry.targets.map((t) => t.text).join(", ") : entry.source;
+  const inputPlaceholder = isReverse ? "Russisch eingeben..." : "Deutsch eingeben...";
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{prompt}</p>
+      <div className="mt-1 flex items-start justify-between gap-2">
+        <div>
+          <p className="text-xl font-semibold text-slate-900">{front}</p>
+          {entry.translit && <p className="text-sm text-slate-600">Translit: {entry.translit}</p>}
+        </div>
+        <div className="text-xs font-semibold text-slate-600">#{entry.frequencyRank}</div>
+      </div>
+      <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        Deine Antwort
+      </label>
+      <input
+        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+        placeholder={inputPlaceholder}
+        aria-label="Antwortfeld Vorschau"
+        disabled
+      />
+      <div className="mt-2 flex gap-2">
+        <button className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm" disabled>
+          Pruefen
+        </button>
+        <button className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700" disabled>
+          Zeigen
+        </button>
       </div>
     </div>
   );
