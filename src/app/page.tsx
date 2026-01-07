@@ -112,21 +112,21 @@ export default function Home() {
     completed: 0,
   };
 
-const updateStats = (
-  lessonKey: string,
-  isCorrect: boolean,
-  isCompleted: boolean
-) => {
-  setLessonStats((prev) => {
-    const current = prev[lessonKey] ?? { correct: 0, wrong: 0, completed: 0 };
-    const next: Stat = {
-      correct: current.correct + (isCorrect ? 1 : 0),
-      wrong: current.wrong + (isCorrect ? 0 : 1),
-      completed: current.completed + (isCompleted ? 1 : 0),
-    };
-    return { ...prev, [lessonKey]: next };
-  });
-};
+  const updateStats = (
+    lessonKey: string,
+    isCorrect: boolean,
+    isCompleted: boolean
+  ) => {
+    setLessonStats((prev) => {
+      const current = prev[lessonKey] ?? { correct: 0, wrong: 0, completed: 0 };
+      const next: Stat = {
+        correct: current.correct + (isCorrect ? 1 : 0),
+        wrong: current.wrong + (isCorrect ? 0 : 1),
+        completed: current.completed + (isCompleted ? 1 : 0),
+      };
+      return { ...prev, [lessonKey]: next };
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-100 text-slate-900">
@@ -191,115 +191,111 @@ const updateStats = (
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <section className="rounded-3xl border border-blue-100 bg-white/90 p-6 shadow-sm backdrop-blur">
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-slate-50 via-white to-blue-50 p-4 shadow-inner">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Kategorien
-                    </p>
-                    <p className="text-sm text-slate-700">
-                      Waehle eine Kategorie, um passende Lektionen zu sehen.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((cat) => {
-                      const stat = categoryStats[cat] ?? {
-                        correct: 0,
-                        wrong: 0,
-                        completed: 0,
-                      };
-                      return (
-                        <button
-                          key={cat}
-                          onClick={() => setCategory(cat)}
-                          className={`group rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition ${
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-slate-50 via-white to-blue-50 p-4 shadow-inner">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                    Kategorien
+                  </p>
+                  <p className="text-sm text-slate-700">
+                    Waehle eine Kategorie, um passende Lektionen zu sehen.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((cat) => {
+                    const stat = categoryStats[cat] ?? {
+                      correct: 0,
+                      wrong: 0,
+                      completed: 0,
+                    };
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setCategory(cat)}
+                        className={`group rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                          safeCategory === cat
+                            ? "border-blue-300 bg-white text-blue-700 ring-2 ring-blue-100"
+                            : "border-slate-200 bg-white/80 text-slate-700 hover:border-blue-200 hover:text-blue-700"
+                        }`}
+                      >
+                        {cat}
+                        <span
+                          className={`ml-2 text-xs font-medium ${
                             safeCategory === cat
-                              ? "border-blue-300 bg-white text-blue-700 ring-2 ring-blue-100"
-                              : "border-slate-200 bg-white/80 text-slate-700 hover:border-blue-200 hover:text-blue-700"
+                              ? "text-blue-600"
+                              : "text-slate-500"
                           }`}
                         >
-                          {cat}
-                          <span
-                            className={`ml-2 text-xs font-medium ${
-                              safeCategory === cat
-                                ? "text-blue-600"
-                                : "text-slate-500"
-                            }`}
-                          >
-                            {stat.correct}/{stat.wrong}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                          {stat.correct}/{stat.wrong}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+            </div>
 
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                      <span className="h-2 w-2 rounded-full bg-blue-400" />
-                      {safeCategory}
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                    <span className="h-2 w-2 rounded-full bg-blue-400" />
+                    {safeCategory}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {lessonsByCategory.length} Lektion
+                    {lessonsByCategory.length === 1 ? "" : "en"} Â·{" "}
+                    {activeLesson?.words.length ?? 0} Vokabeln
+                  </span>
+                </div>
+                {safeCategory === "Verben" && (
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                    <span className="uppercase tracking-wide text-[10px] text-slate-500">
+                      Zeitform
                     </span>
-                    <span className="text-xs text-slate-500">
-                      {lessonsByCategory.length} Lektion
-                      {lessonsByCategory.length === 1 ? "" : "en"} Â·{" "}
-                      {activeLesson?.words.length ?? 0} Vokabeln
-                    </span>
+                    <select
+                      value={tense}
+                      onChange={(e) => setTense(e.target.value as Tense)}
+                      className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    >
+                      <option value="present">Gegenwart</option>
+                      <option value="past">Vergangenheit</option>
+                      <option value="future">Zukunft</option>
+                    </select>
                   </div>
-                  {safeCategory === "Verben" && (
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-                      <span className="uppercase tracking-wide text-[10px] text-slate-500">
-                        Zeitform
-                      </span>
-                      <select
-                        value={tense}
-                        onChange={(e) => setTense(e.target.value as Tense)}
-                        className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                      >
-                        <option value="present">Gegenwart</option>
-                        <option value="past">Vergangenheit</option>
-                        <option value="future">Zukunft</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
+                )}
+              </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <StatBadge
-                    label="Richtig"
-                    value={`${activeCategoryStat.correct}`}
-                  />
-                  <StatBadge
-                    label="Falsch"
-                    value={`${activeCategoryStat.wrong}`}
-                  />
-                  <StatBadge
-                    label="Abgeschlossen"
-                    value={`${activeCategoryStat.completed}`}
-                  />
-                </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <StatBadge
+                  label="Richtig"
+                  value={`${activeCategoryStat.correct}`}
+                />
+                <StatBadge
+                  label="Falsch"
+                  value={`${activeCategoryStat.wrong}`}
+                />
+                <StatBadge
+                  label="Abgeschlossen"
+                  value={`${activeCategoryStat.completed}`}
+                />
+              </div>
 
-                <div className="mt-5">
-                  <LessonTrainer
-                    lessons={lessonsByCategory}
-                selectedLessonId={safeLessonId}
-                onSelectLesson={(id) => setLessonId(id)}
-                direction={direction}
-                selectedTense={
-                  safeCategory === "Verben" ? tense : undefined
-                }
-                onResult={(lessonKey, isCorrect, isCompleted) =>
-                  updateStats(lessonKey, isCorrect, isCompleted)
-                }
-              />
+              <div className="mt-5">
+                <LessonTrainer
+                  lessons={lessonsByCategory}
+                  selectedLessonId={safeLessonId}
+                  onSelectLesson={(id) => setLessonId(id)}
+                  direction={direction}
+                  selectedTense={safeCategory === "Verben" ? tense : undefined}
+                  onResult={(lessonKey, isCorrect, isCompleted) =>
+                    updateStats(lessonKey, isCorrect, isCompleted)
+                  }
+                />
+              </div>
             </div>
           </div>
-            </div>
-          </section>
 
           <aside className="space-y-4">
             <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -377,7 +373,11 @@ function LessonTrainer({
   onSelectLesson: (lessonId: string) => void;
   direction: Direction;
   selectedTense?: Tense;
-  onResult: (lessonId: string, isCorrect: boolean, isCompleted: boolean) => void;
+  onResult: (
+    lessonId: string,
+    isCorrect: boolean,
+    isCompleted: boolean
+  ) => void;
 }) {
   const orderedLessons = useMemo(
     () =>
@@ -563,7 +563,7 @@ function LessonTrainer({
       </div>
 
       {activeLesson ? (
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="">
           <h2 className="text-lg font-semibold text-slate-900">
             {activeLesson.title}
           </h2>
@@ -582,6 +582,34 @@ function LessonTrainer({
               const back = isReverse
                 ? word.source
                 : word.targets.map((t) => t.text).join(", ");
+              const longestSide = front.length >= back.length ? front : back;
+              const estimatedWidth = Math.min(
+                Math.max(longestSide.length * 9 + 60, 200),
+                420
+              );
+              const baseExpected = isReverse
+                ? word.source
+                : word.targets
+                    .map((t) => t.text.split("/")[0] ?? t.text)
+                    .join(", ");
+              const estimatedInputWidth = Math.min(
+                Math.max(baseExpected.length * 9 + 80, 200),
+                420
+              );
+              const inputMax = Math.max(160, estimatedWidth - 24);
+              const clampedInputWidth = Math.max(
+                160,
+                Math.min(estimatedInputWidth, inputMax)
+              );
+              const conjugationWidths =
+                selectedTense && word.forms?.conjugations?.[selectedTense]
+                  ? word.forms.conjugations[selectedTense]!.map((form) =>
+                      Math.max(
+                        160,
+                        Math.min(Math.max(form.length * 9 + 80, 200), inputMax)
+                      )
+                    )
+                  : [];
               const handleLeft = () => {
                 if (activeWordId === word.id && !showAnswer) {
                   setActiveWordId(null);
@@ -615,8 +643,7 @@ function LessonTrainer({
                   selectedTense &&
                   word.forms?.conjugations?.[selectedTense];
                 if (isVerbWithConj) {
-                  const forms =
-                    word.forms?.conjugations?.[selectedTense] ?? [];
+                  const forms = word.forms?.conjugations?.[selectedTense] ?? [];
                   setConjAnswers((prev) => ({
                     ...prev,
                     [word.id]: [...forms],
@@ -647,11 +674,10 @@ function LessonTrainer({
               return (
                 <div
                   key={word.id}
-                  className={`w-auto min-w-[320px] max-w-[520px] rounded-xl border px-4 py-3 shadow-sm ${
-                    isActive
-                      ? "border-blue-200 bg-blue-50"
-                      : "border-slate-200 bg-slate-50"
+                  className={`w-auto rounded-xl bg-white px-4 py-3 shadow-sm ${
+                    isActive ? "ring-2 ring-blue-200 bg-blue-50/60" : "bg-white"
                   }`}
+                  style={{ width: `${estimatedWidth}px` }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div
@@ -769,15 +795,22 @@ function LessonTrainer({
                             (_, idx) => {
                               const labels =
                                 selectedTense === "past"
-                                  ? ["мужской", "женский", "множественное"]
-                                  : ["я", "ты", "он/она/\nоно", "мы", "вы", "они"];
+                                  ? ["муж", "жен", "множ"]
+                                  : [
+                                      "я",
+                                      "ты",
+                                      "он/она\nоно",
+                                      "мы",
+                                      "вы",
+                                      "они",
+                                    ];
                               const label = labels[idx] ?? `Form ${idx + 1}`;
                               return (
                                 <label
                                   key={idx}
-                                  className="flex w-full max-w-[340px] items-center justify-start gap-2 text-base text-slate-700"
+                                  className="flex w-full max-w-[340px] flex-col gap-1 text-base text-slate-700"
                                 >
-                                  <span className="shrink-0 w-24 pr-2 text-right font-semibold leading-tight whitespace-pre-line">
+                                  <span className="font-semibold leading-tight whitespace-pre-line">
                                     {label}
                                   </span>
                                   <input
@@ -789,7 +822,13 @@ function LessonTrainer({
                                         return { ...prev, [word.id]: next };
                                       })
                                     }
-                                    className="w-[280px] rounded-lg border border-slate-200 px-3 py-2 text-left text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    className="rounded-lg border border-slate-200 px-3 py-2 text-left text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 overflow-hidden text-ellipsis whitespace-nowrap"
+                                    style={{
+                                      width: `${
+                                        conjugationWidths[idx] ??
+                                        clampedInputWidth
+                                      }px`,
+                                    }}
                                     autoComplete="off"
                                     onClick={(e) => e.stopPropagation()}
                                     onDoubleClick={(e) => e.stopPropagation()}
@@ -806,7 +845,8 @@ function LessonTrainer({
                         <>
                           {prefilled && (
                             <div className="text-xs text-slate-500">
-                              Vorgabe eingetragen – zum Ueben anpassen oder direkt abschicken.
+                              Vorgabe eingetragen – zum Ueben anpassen oder
+                              direkt abschicken.
                             </div>
                           )}
                           <input
@@ -818,7 +858,8 @@ function LessonTrainer({
                                 ? "Russisch eingeben..."
                                 : "Deutsch eingeben..."
                             }
-                            className="w-[280px] mx-auto rounded-lg border border-slate-200 px-3 py-2 text-left text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            className="mx-auto rounded-lg border border-slate-200 px-3 py-2 text-left text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            style={{ width: `${clampedInputWidth}px` }}
                             autoComplete="off"
                             onClick={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
@@ -929,4 +970,3 @@ function LessonWord({ entry }: { entry: WordEntry }) {
     </div>
   );
 }
-
