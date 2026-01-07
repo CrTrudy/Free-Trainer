@@ -636,7 +636,7 @@ function LessonTrainer({
               };
               const handleRight = () => {
                 setActiveWordId(word.id);
-                setShowAnswer(false);
+                setShowAnswer(true);
                 setFeedback(null);
                 const isVerbWithConj =
                   word.partOfSpeech === "verb" &&
@@ -659,17 +659,6 @@ function LessonTrainer({
                   setConjAnswers((prev) => ({ ...prev, [word.id]: [] }));
                 }
                 setPrefilled(true);
-                if (
-                  word.partOfSpeech === "verb" &&
-                  selectedTense &&
-                  word.forms?.conjugations?.[selectedTense]
-                ) {
-                  const count = word.forms.conjugations[selectedTense]!.length;
-                  setConjAnswers((prev) => ({
-                    ...prev,
-                    [word.id]: Array(count).fill(""),
-                  }));
-                }
               };
               return (
                 <div
@@ -677,7 +666,7 @@ function LessonTrainer({
                   className={`w-auto rounded-xl bg-white px-4 py-3 shadow-sm ${
                     isActive ? "ring-2 ring-blue-200 bg-blue-50/60" : "bg-white"
                   }`}
-                  style={{ width: `${estimatedWidth}px` }}
+                  style={{ width: `${estimatedWidth}px`, maxWidth: "100%" }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div
@@ -808,11 +797,8 @@ function LessonTrainer({
                               return (
                                 <label
                                   key={idx}
-                                  className="flex w-full max-w-[340px] flex-col gap-1 text-base text-slate-700"
+                                  className="flex w-full max-w-[340px] flex-col text-base text-slate-700"
                                 >
-                                  <span className="font-semibold leading-tight whitespace-pre-line">
-                                    {label}
-                                  </span>
                                   <input
                                     value={conjAnswers[word.id]?.[idx] ?? ""}
                                     onChange={(evt) =>
@@ -824,10 +810,8 @@ function LessonTrainer({
                                     }
                                     className="rounded-lg border border-slate-200 px-3 py-2 text-left text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 overflow-hidden text-ellipsis whitespace-nowrap"
                                     style={{
-                                      width: `${
-                                        conjugationWidths[idx] ??
-                                        clampedInputWidth
-                                      }px`,
+                                      width: `${conjugationWidths[idx] ?? clampedInputWidth}px`,
+                                      maxWidth: "100%",
                                     }}
                                     autoComplete="off"
                                     onClick={(e) => e.stopPropagation()}
@@ -859,7 +843,7 @@ function LessonTrainer({
                                 : "Deutsch eingeben..."
                             }
                             className="mx-auto rounded-lg border border-slate-200 px-3 py-2 text-left text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                            style={{ width: `${clampedInputWidth}px` }}
+                            style={{ width: `${clampedInputWidth}px`, maxWidth: "100%" }}
                             autoComplete="off"
                             onClick={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => e.stopPropagation()}
