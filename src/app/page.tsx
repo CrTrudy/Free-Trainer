@@ -112,17 +112,21 @@ export default function Home() {
     completed: 0,
   };
 
-  const updateStats = (lessonKey: string, isCorrect: boolean) => {
-    setLessonStats((prev) => {
-      const current = prev[lessonKey] ?? { correct: 0, wrong: 0, completed: 0 };
-      const next: Stat = {
-        correct: current.correct + (isCorrect ? 1 : 0),
-        wrong: current.wrong + (isCorrect ? 0 : 1),
-        completed: current.completed,
-      };
-      return { ...prev, [lessonKey]: next };
-    });
-  };
+const updateStats = (
+  lessonKey: string,
+  isCorrect: boolean,
+  isCompleted: boolean
+) => {
+  setLessonStats((prev) => {
+    const current = prev[lessonKey] ?? { correct: 0, wrong: 0, completed: 0 };
+    const next: Stat = {
+      correct: current.correct + (isCorrect ? 1 : 0),
+      wrong: current.wrong + (isCorrect ? 0 : 1),
+      completed: current.completed + (isCompleted ? 1 : 0),
+    };
+    return { ...prev, [lessonKey]: next };
+  });
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-100 text-slate-900">
@@ -282,18 +286,18 @@ export default function Home() {
                 <div className="mt-5">
                   <LessonTrainer
                     lessons={lessonsByCategory}
-                    selectedLessonId={safeLessonId}
-                    onSelectLesson={(id) => setLessonId(id)}
-                    direction={direction}
-                    selectedTense={
-                      safeCategory === "Verben" ? tense : undefined
-                    }
-                    onResult={(lessonKey, isCorrect) =>
-                      updateStats(lessonKey, isCorrect)
-                    }
-                  />
-                </div>
-              </div>
+                selectedLessonId={safeLessonId}
+                onSelectLesson={(id) => setLessonId(id)}
+                direction={direction}
+                selectedTense={
+                  safeCategory === "Verben" ? tense : undefined
+                }
+                onResult={(lessonKey, isCorrect, isCompleted) =>
+                  updateStats(lessonKey, isCorrect, isCompleted)
+                }
+              />
+            </div>
+          </div>
             </div>
           </section>
 
@@ -373,7 +377,7 @@ function LessonTrainer({
   onSelectLesson: (lessonId: string) => void;
   direction: Direction;
   selectedTense?: Tense;
-  onResult: (lessonId: string, isCorrect: boolean) => void;
+  onResult: (lessonId: string, isCorrect: boolean, isCompleted: boolean) => void;
 }) {
   const orderedLessons = useMemo(
     () =>
@@ -394,6 +398,7 @@ function LessonTrainer({
   const [conjAnswers, setConjAnswers] = useState<Record<string, string[]>>({});
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
     setActiveWordId(null);
@@ -402,6 +407,7 @@ function LessonTrainer({
     setAnswer("");
     setHiddenIds([]);
     setConjAnswers({});
+    setPrefilled(false);
   }, [activeLesson?.id]);
 
   useEffect(() => {
@@ -418,11 +424,13 @@ function LessonTrainer({
       setShowAnswer(false);
       setFeedback(null);
       setAnswer("");
+      setPrefilled(false);
     } else {
       setActiveWordId(wordId);
       setShowAnswer(false);
       setFeedback(null);
       setAnswer("");
+      setPrefilled(false);
       if (
         word.partOfSpeech === "verb" &&
         selectedTense &&
@@ -442,6 +450,7 @@ function LessonTrainer({
     setShowAnswer(true);
     setFeedback(null);
     setAnswer("");
+    setPrefilled(false);
     if (
       word.partOfSpeech === "verb" &&
       selectedTense &&
@@ -494,7 +503,13 @@ function LessonTrainer({
       );
     }
     setFeedback(isCorrect ? "correct" : "wrong");
-    onResult(activeLesson.id, isCorrect);
+    const willBeHiddenCount =
+      hiddenIds.includes(activeWord.id) || !isCorrect
+        ? hiddenIds.length
+        : hiddenIds.length + 1;
+    const isLessonCompleted =
+      isCorrect && willBeHiddenCount >= (activeLesson?.words.length ?? 0);
+    onResult(activeLesson.id, isCorrect, isLessonCompleted);
 
     if (isCorrect) {
       setActiveWordId(null);
@@ -553,9 +568,9 @@ function LessonTrainer({
             {activeLesson.title}
           </h2>
 
-          <div className="mt-4 space-y-3 max-w-2xl mx-auto">
+          <div className="mt-4 flex flex-wrap gap-3">
             {visibleWords.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              <div className="w-full rounded-xl border border-dashed border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                 Alle Woerter korrekt! Die Lektion wurde zurueckgesetzt.
               </div>
             ) : null}
@@ -593,11 +608,30 @@ function LessonTrainer({
               };
               const handleRight = () => {
                 setActiveWordId(word.id);
-                setShowAnswer((prev) =>
-                  activeWordId === word.id ? !prev : true
-                );
+                setShowAnswer(false);
                 setFeedback(null);
-                setAnswer("");
+                const isVerbWithConj =
+                  word.partOfSpeech === "verb" &&
+                  selectedTense &&
+                  word.forms?.conjugations?.[selectedTense];
+                if (isVerbWithConj) {
+                  const forms =
+                    word.forms?.conjugations?.[selectedTense] ?? [];
+                  setConjAnswers((prev) => ({
+                    ...prev,
+                    [word.id]: [...forms],
+                  }));
+                  setAnswer("");
+                } else {
+                  const expected = isReverse
+                    ? word.source
+                    : word.targets
+                        .map((t) => t.text.split("/")[0] ?? t.text)
+                        .join(", ");
+                  setAnswer(expected);
+                  setConjAnswers((prev) => ({ ...prev, [word.id]: [] }));
+                }
+                setPrefilled(true);
                 if (
                   word.partOfSpeech === "verb" &&
                   selectedTense &&
@@ -613,7 +647,7 @@ function LessonTrainer({
               return (
                 <div
                   key={word.id}
-                  className={`rounded-xl border px-4 py-3 shadow-sm ${
+                  className={`w-auto min-w-[320px] max-w-[520px] rounded-xl border px-4 py-3 shadow-sm ${
                     isActive
                       ? "border-blue-200 bg-blue-50"
                       : "border-slate-200 bg-slate-50"
@@ -621,7 +655,7 @@ function LessonTrainer({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div
-                      className="flex-1 cursor-pointer text-center"
+                      className="cursor-pointer text-center"
                       onClick={handleLeft}
                       onDoubleClick={(e) => {
                         e.stopPropagation();
@@ -730,20 +764,20 @@ function LessonTrainer({
                       {word.partOfSpeech === "verb" &&
                       selectedTense &&
                       word.forms?.conjugations?.[selectedTense] ? (
-                        <div className="flex w-full flex-col items-center gap-2">
+                        <div className="flex w-full flex-col items-start gap-2">
                           {word.forms.conjugations[selectedTense]!.map(
                             (_, idx) => {
                               const labels =
                                 selectedTense === "past"
                                   ? ["мужской", "женский", "множественное"]
-                                  : ["я", "ты", "он/она/оно", "мы", "вы", "они"];
+                                  : ["я", "ты", "он/она/\nоно", "мы", "вы", "они"];
                               const label = labels[idx] ?? `Form ${idx + 1}`;
                               return (
                                 <label
                                   key={idx}
-                                  className="block w-full text-center text-sm text-slate-700"
+                                  className="flex w-full max-w-[340px] items-center justify-start gap-2 text-base text-slate-700"
                                 >
-                                  <span className="mb-1 block text-xs font-semibold text-slate-500">
+                                  <span className="shrink-0 w-24 pr-2 text-right font-semibold leading-tight whitespace-pre-line">
                                     {label}
                                   </span>
                                   <input
@@ -755,7 +789,7 @@ function LessonTrainer({
                                         return { ...prev, [word.id]: next };
                                       })
                                     }
-                                    className="w-full max-w-[220px] mx-auto rounded-lg border border-slate-200 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    className="w-[280px] rounded-lg border border-slate-200 px-3 py-2 text-left text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                                     autoComplete="off"
                                     onClick={(e) => e.stopPropagation()}
                                     onDoubleClick={(e) => e.stopPropagation()}
@@ -769,20 +803,27 @@ function LessonTrainer({
                           )}
                         </div>
                       ) : (
-                        <input
-                          ref={isActive ? inputRef : null}
-                          value={answer}
-                          onChange={(evt) => setAnswer(evt.target.value)}
-                          placeholder={
-                            isReverse
-                              ? "Russisch eingeben..."
-                              : "Deutsch eingeben..."
-                          }
-                          className="w-full max-w-md mx-auto rounded-lg border border-slate-200 px-3 py-2 text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                          autoComplete="off"
-                          onClick={(e) => e.stopPropagation()}
-                          onDoubleClick={(e) => e.stopPropagation()}
-                        />
+                        <>
+                          {prefilled && (
+                            <div className="text-xs text-slate-500">
+                              Vorgabe eingetragen – zum Ueben anpassen oder direkt abschicken.
+                            </div>
+                          )}
+                          <input
+                            ref={isActive ? inputRef : null}
+                            value={answer}
+                            onChange={(evt) => setAnswer(evt.target.value)}
+                            placeholder={
+                              isReverse
+                                ? "Russisch eingeben..."
+                                : "Deutsch eingeben..."
+                            }
+                            className="w-[280px] mx-auto rounded-lg border border-slate-200 px-3 py-2 text-left text-base shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            autoComplete="off"
+                            onClick={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                          />
+                        </>
                       )}
                       <input type="submit" className="hidden" />
                     </form>
