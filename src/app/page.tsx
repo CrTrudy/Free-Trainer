@@ -1,12 +1,7 @@
 ﻿"use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import {
-  lessons,
-  type Lesson,
-  type Tense,
-  type WordEntry,
-} from "../data/vocab";
+import { lessons, type Lesson, type Tense } from "../data/vocab";
 
 type Direction = "source-to-target" | "target-to-source";
 
@@ -284,6 +279,7 @@ export default function Home() {
 
               <div className="mt-5">
                 <LessonTrainer
+                  key={safeLessonId}
                   lessons={lessonsByCategory}
                   selectedLessonId={safeLessonId}
                   onSelectLesson={(id) => setLessonId(id)}
@@ -401,65 +397,12 @@ function LessonTrainer({
   const [prefilled, setPrefilled] = useState(false);
 
   useEffect(() => {
-    setActiveWordId(null);
-    setShowAnswer(false);
-    setFeedback(null);
-    setAnswer("");
-    setHiddenIds([]);
-    setConjAnswers({});
-    setPrefilled(false);
-  }, [activeLesson?.id]);
-
-  useEffect(() => {
     if (activeWordId && !showAnswer && inputRef.current) {
       inputRef.current.focus();
     }
   }, [activeWordId, showAnswer]);
 
   const isReverse = direction === "target-to-source";
-
-  const handleSelectWord = (wordId: string, word: WordEntry) => {
-    if (activeWordId === wordId) {
-      setActiveWordId(null);
-      setShowAnswer(false);
-      setFeedback(null);
-      setAnswer("");
-      setPrefilled(false);
-    } else {
-      setActiveWordId(wordId);
-      setShowAnswer(false);
-      setFeedback(null);
-      setAnswer("");
-      setPrefilled(false);
-      if (
-        word.partOfSpeech === "verb" &&
-        selectedTense &&
-        word.forms?.conjugations?.[selectedTense]
-      ) {
-        const count = word.forms.conjugations[selectedTense]!.length;
-        setConjAnswers((prev) => ({
-          ...prev,
-          [wordId]: Array(count).fill(""),
-        }));
-      }
-    }
-  };
-
-  const handleDoubleClickWord = (wordId: string, word: WordEntry) => {
-    setActiveWordId(wordId);
-    setShowAnswer(true);
-    setFeedback(null);
-    setAnswer("");
-    setPrefilled(false);
-    if (
-      word.partOfSpeech === "verb" &&
-      selectedTense &&
-      word.forms?.conjugations?.[selectedTense]
-    ) {
-      const count = word.forms.conjugations[selectedTense]!.length;
-      setConjAnswers((prev) => ({ ...prev, [wordId]: Array(count).fill("") }));
-    }
-  };
 
   const activeWord =
     activeLesson?.words.find((w) => w.id === activeWordId) ?? null;
@@ -782,18 +725,6 @@ function LessonTrainer({
                         <div className="flex w-full flex-col items-start gap-2">
                           {word.forms.conjugations[selectedTense]!.map(
                             (_, idx) => {
-                              const labels =
-                                selectedTense === "past"
-                                  ? ["муж", "жен", "множ"]
-                                  : [
-                                      "я",
-                                      "ты",
-                                      "он/она\nоно",
-                                      "мы",
-                                      "вы",
-                                      "они",
-                                    ];
-                              const label = labels[idx] ?? `Form ${idx + 1}`;
                               return (
                                 <label
                                   key={idx}
@@ -924,33 +855,3 @@ function SelectPill({
   );
 }
 
-function LessonWord({ entry }: { entry: WordEntry }) {
-  return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-semibold text-slate-900">
-            {entry.source}{" "}
-            {entry.translit && (
-              <span className="text-slate-500">({entry.translit})</span>
-            )}
-          </p>
-          <p className="text-sm text-slate-700">
-            {entry.targets.map((t) => t.text).join(", ")}
-          </p>
-          {entry.targets.some((t) => t.note) && (
-            <p className="text-xs text-slate-500">
-              {entry.targets
-                .filter((t) => t.note)
-                .map((t) => `${t.text}: ${t.note}`)
-                .join(" â€¢ ")}
-            </p>
-          )}
-        </div>
-        <div className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-slate-600 shadow-sm">
-          #{entry.frequencyRank}
-        </div>
-      </div>
-    </div>
-  );
-}
