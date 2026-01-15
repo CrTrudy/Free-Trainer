@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { lessons, type Tense } from "../data/vocab";
 import { LessonTrainer } from "./components/LessonTrainer";
 import { SelectPill } from "./components/SelectPill";
@@ -9,7 +9,6 @@ import { useLessonSelection } from "./hooks/useLessonSelection";
 import { useLessonStats } from "./hooks/useLessonStats";
 import type { Direction, Stat } from "./types/trainer";
 import { createEmptyStat } from "./utils/lessonUtils";
-
 
 export default function Home() {
   const {
@@ -28,38 +27,13 @@ export default function Home() {
   const [direction, setDirection] = useState<Direction>("source-to-target");
   const [tense, setTense] = useState<Tense>("present");
   const [lessonStats, setLessonStats] = useState<Record<string, Stat>>({});
-  const [statsReady, setStatsReady] = useState(false);
-  const statsStorageKey = `lessonStats:${pairKey}`;
-
-  useEffect(() => {
-    setStatsReady(false);
-    if (typeof window === "undefined") return;
-    try {
-      const raw = localStorage.getItem(statsStorageKey);
-      setLessonStats(raw ? (JSON.parse(raw) as Record<string, Stat>) : {});
-    } catch {
-      setLessonStats({});
-    } finally {
-      setStatsReady(true);
-    }
-  }, [statsStorageKey]);
-
-  useEffect(() => {
-    if (!statsReady || typeof window === "undefined") return;
-    try {
-      localStorage.setItem(statsStorageKey, JSON.stringify(lessonStats));
-    } catch {
-      // ignore storage failures
-    }
-  }, [lessonStats, statsReady, statsStorageKey]);
 
   const { categoryStats, totalStats } = useLessonStats(
     lessonsForPair,
     lessonStats
   );
 
-  const activeCategoryStat =
-    categoryStats[safeCategory] ?? createEmptyStat();
+  const activeCategoryStat = categoryStats[safeCategory] ?? createEmptyStat();
 
   const updateStats = (
     lessonKey: string,
@@ -77,17 +51,6 @@ export default function Home() {
     });
   };
 
-  const handleClearStats = () => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.removeItem(statsStorageKey);
-      } catch {
-        // ignore storage failures
-      }
-    }
-    setLessonStats({});
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-100 text-slate-900">
       <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 md:px-8">
@@ -98,12 +61,12 @@ export default function Home() {
                 Vokabel Trainer
               </p>
               <h1 className="mt-2 text-3xl font-semibold md:text-4xl">
-                Lektionen ueben, schreiben, merken
+                Lektionen üben, schreiben, merken
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-blue-100">
-                Waehle Kategorie und Lektion (10-15 Woerter), arbeite alle
-                Woerter ab. Korrekte Woerter verschwinden bis die Lektion
-                abgeschlossen ist. Mit Mehrdeutigkeiten, Transkription und
+                Wähle Kategorie und Lektion (10-15 Wörter), arbeite alle Wörter
+                ab. Korrekte Wörter verschwinden bis die Lektion abgeschlossen
+                ist. Mit Mehrdeutigkeiten, Transkription und
                 Konjugationshinweisen.
               </p>
             </div>
@@ -270,13 +233,6 @@ export default function Home() {
                 Richtig: {totalStats.correct} Â· Falsch: {totalStats.wrong} Â·
                 Abgeschlossene Lektionen: {totalStats.completed}
               </p>
-              <button
-                type="button"
-                onClick={handleClearStats}
-                className="mt-3 rounded-full border border-emerald-200 bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-white"
-              >
-                Statistik loeschen
-              </button>
             </div>
 
             <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -299,4 +255,3 @@ export default function Home() {
     </div>
   );
 }
-
