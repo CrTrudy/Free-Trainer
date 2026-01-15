@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { lessons, type Tense } from "../data/vocab";
 import { LessonTrainer } from "./components/LessonTrainer";
 import { SelectPill } from "./components/SelectPill";
@@ -28,6 +28,30 @@ export default function Home() {
   const [direction, setDirection] = useState<Direction>("source-to-target");
   const [tense, setTense] = useState<Tense>("present");
   const [lessonStats, setLessonStats] = useState<Record<string, Stat>>({});
+  const [statsReady, setStatsReady] = useState(false);
+  const statsStorageKey = `lessonStats:${pairKey}`;
+
+  useEffect(() => {
+    setStatsReady(false);
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem(statsStorageKey);
+      setLessonStats(raw ? (JSON.parse(raw) as Record<string, Stat>) : {});
+    } catch {
+      setLessonStats({});
+    } finally {
+      setStatsReady(true);
+    }
+  }, [statsStorageKey]);
+
+  useEffect(() => {
+    if (!statsReady || typeof window === "undefined") return;
+    try {
+      localStorage.setItem(statsStorageKey, JSON.stringify(lessonStats));
+    } catch {
+      // ignore storage failures
+    }
+  }, [lessonStats, statsReady, statsStorageKey]);
 
   const { categoryStats, totalStats } = useLessonStats(
     lessonsForPair,
@@ -51,6 +75,17 @@ export default function Home() {
       };
       return { ...prev, [lessonKey]: next };
     });
+  };
+
+  const handleClearStats = () => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(statsStorageKey);
+      } catch {
+        // ignore storage failures
+      }
+    }
+    setLessonStats({});
   };
 
   return (
@@ -235,6 +270,13 @@ export default function Home() {
                 Richtig: {totalStats.correct} Â· Falsch: {totalStats.wrong} Â·
                 Abgeschlossene Lektionen: {totalStats.completed}
               </p>
+              <button
+                type="button"
+                onClick={handleClearStats}
+                className="mt-3 rounded-full border border-emerald-200 bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-white"
+              >
+                Statistik loeschen
+              </button>
             </div>
 
             <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
